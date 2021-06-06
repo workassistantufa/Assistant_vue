@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Ассистент</title>
+    <meta charset="utf-8" />
+    <style>
+        body {
+            font-family: Helvetica Neue, Arial, sans-serif;
+            font-size: 14px;
+            color: #444;
+        }
+
+        table {
+            border: 2px solid #42b983;
+            border-radius: 3px;
+            background-color: #fff;
+        }
+
+        th {
+            background-color: #42b983;
+            color: rgba(255, 255, 255, 0.66);
+            cursor: pointer;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        td {
+            background-color: #f9f9f9;
+        }
+
+        th,
+        td {
+            min-width: 20px;
+            padding: 10px 20px;
+        }
+
+        th.active {
+            color: #fff;
+        }
+
+        th.active .arrow {
+            opacity: 1;
+        }
+
+        .arrow {
+            display: inline-block;
+            vertical-align: middle;
+            width: 0;
+            height: 0;
+            margin-left: 5px;
+            opacity: 0.66;
+        }
+
+        .arrow.asc {
+            border-left: 4px solid transparent;
+            border-right: 4px solid transparent;
+            border-bottom: 4px solid #fff;
+        }
+
+        .arrow.dsc {
+            border-left: 4px solid transparent;
+            border-right: 4px solid transparent;
+            border-top: 4px solid #fff;
+        }
+    </style>
+    <script src="https://unpkg.com/vue@next"></script>
+</head>
+
+<body>
+    <div id="app">
+        <h1>Конструктор документов</h1>
+        <button type="button" @click="$fetchData">Обновить</button>
+        <button type="button" @click="createDictionary()">Создать</button>
+        <button type="button" @click="deleteDictionary()">Удалить</button>
+        <p />
+        <form id="search">
+            Поиск <input name="query" v-model="searchQuery" />
+        </form>
+        <p />
+        <grid :rows="gridData" :columns="gridColumns" :filter-key="searchQuery"></grid>
+    </div>
+    <script>
+        const app = Vue.createApp({
+            created() {
+                this.fetchData()
+            },
+            data() {
+                return {
+                    searchQuery: '',
+                    gridColumns: ['id', 'name', 'description'],
+                    gridData: [],
+                    gridSelected: []
+                }
+            },
+            methods: {
+                fetchData() {
+                    let url = new URL('http://localhost:3001/api');
+                    url.searchParams.set('type', 'dicJournal');
+                    fetch(url)
+                        .then((response) => response.json())
+                        .then((rows) => {
+                            console.log('rows=', rows);
+                            this.gridData = rows;
+                        });
+                },
+                createDictionary() {
+                    const url = 'http://localhost:3001/api';
+                    const params = {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json;charset=utf-8'
+                        },
+                        body: JSON.stringify({ //Собираем параметры 
+                            type: 'dic'
+                        })
+                    };
+                    fetch(url, params)
+                        .then(response => response.json())
+                        .then(rows => this.gridData.push(rows));
+                },
+                deleteDictionary() {
+                    console.log(this.gridSelected);
+                }
+            }
+        });
+
+        // register the grid component
+        app.component('grid', {
+            template: `
+        <table>
+            <thead>
+                <tr>
+                    <th><label class="form-checkbox">
+                            <input type="checkbox" v-model="selectAll" @click="select">
+                            <i class="form-icon"></i>
+                        </label>
+                    </th>
+                    <th @click="sortBy('id')" :class="{ active: sortKey == 'id' }">
+                        id
+                        <span class="arrow" :class="sortOrders['id'] > 0 ? 'asc' : 'dsc'"></span>
+                    </th>
+                    <th @click="sortBy('name')" :class="{ active: sortKey == 'name' }">
+                        Наименование
+                        <span class="arrow" :class="sortOrders['name'] > 0 ? 'asc' : 'dsc'"></span>
+                    </th>
+                    <th @click="sortBy('description')" :class="{ active: sortKey == 'description' }">
+                        Описание
+                        <span class="arrow" :class="sortOrders['description'] > 0 ? 'asc' : 'dsc'"></span>
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr v-for="entry in filteredRows">
+                    <td>
+                        <label class="form-checkbox">
+                            <input type="checkbox" :value="entry.id" v-model="selected" @click="addSelected(entry.id)">
+                            <i class="form-icon"></i>
+                        </label>
+                    </td>
+                    <td>{{ entry.id }}</td>
+                    <td>
+                        <a v-bind:href="'/dicConstuctor/'+ entry.id">
+                            {{ entry.name }}
+                        </a>
+                    </td>
+                    <td>{{ entry.description }}</td>
+                </tr>
+            </tbody>
+        </table>`,
+            props: {
+                rows: Array,
+                columns: Array,
+                filterKey: String,
+                _selected: Array
+            },
+            data() {
+                const sortOrders = {};
+                this.columns.forEach(function (key) {
+                    sortOrders[key] = 1;
+                });
+                return {
+                    sortKey: '',
+                    sortOrders,
+                    selectAll: false,
+                    selected: []
+                }
+            },
+            computed: {
+                filteredRows() {
+                    const sortKey = this.sortKey;
+                    const filterKey = this.filterKey && this.filterKey.toLowerCase();
+                    const order = this.sortOrders[sortKey] || 1;
+                    let rows = this.rows;
+                    if (filterKey) {
+                        rows = rows.filter((row) => {
+                            return Object.keys(row).some((key) => {
+                                return (
+                                    String(row[key])
+                                    .toLowerCase()
+                                    .indexOf(filterKey) > -1
+                                )
+                            });
+                        });
+                    };
+                    if (sortKey) {
+                        rows = rows.slice().sort((a, b) => {
+                            if (sortKey == 'id') {
+                                a = Number(a[sortKey]);
+                                b = Number(b[sortKey]);
+                            } else {
+                                a = a[sortKey];
+                                b = b[sortKey];
+                            }
+                            return (a === b ? 0 : a > b ? 1 : -1) * order;
+                        })
+                    };
+                    return rows;
+                },
+                sortOrders() {
+                    const columnSortOrders = {};
+                    this.columns.forEach((key) => {
+                        columnSortOrders[key] = 1
+                    });
+                    return columnSortOrders;
+                }
+            },
+            methods: {
+                sortBy(key) {
+                    this.sortKey = key;
+                    this.sortOrders[key] = this.sortOrders[key] * -1;
+                },
+                select() {
+                    this.selected = [];
+                    if (!this.selectAll) {
+                        for (let i in this.rows) {
+                            this.selected.push(this.rows[i].id);
+                        }
+                    }
+                },
+                addSelected(id) {
+                    //const row = this.rows.find(row => row.id == id);
+                    console.log('this.selected =', this.selected);
+                    this.gridSelected = this.selected;
+                }
+            }
+        });
+
+        app.mount('#app')
+    </script>
+</body>
+
+</html>
