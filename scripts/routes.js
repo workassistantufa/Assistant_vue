@@ -18,6 +18,26 @@ module.exports.get_docJournal = async (ctx) => {
     ctx.body = html.toString();
 };
 
+module.exports.get_dicJournal = async (ctx) => {
+    //Читаем информацию из файла
+    const html = await fs.promises.readFile("./html/dicJournal.html");
+    //console.log(html.toString());
+    ctx.body = html.toString();
+};
+
+module.exports.get_dic = async (ctx) => {
+    console.log('ctx.params=', ctx.params);
+    //Принимаем название документа/таблицы в виде переменной docID
+    const tableID = ctx.params.tableID;
+    //Принимаем id документа/таблицы в виде переменной id
+    const id = ctx.params.id;
+
+    //Читаем информацию из файла
+    const html = await fs.promises.readFile("./html/dic.html");
+    //console.log(html.toString());
+    ctx.body = html.toString();
+};
+
 module.exports.get_dicConstuctor = async (ctx) => {
     //Читаем информацию из файла
     const html = await fs.promises.readFile("./html/dicConstuctorJournal.html");

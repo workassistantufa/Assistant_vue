@@ -19,16 +19,14 @@ const routes = require('./scripts/routes.js');
  */
 router.get("/", routes.get_main);
 
-router.get("/doc", routes.get_docJournal);
+//router.get("/doc", routes.get_docJournal);
 
-//router.get("/dic", routes.get_dicJournal);
+router.get("/dic", routes.get_dicJournal);
 
-router.get("/dicConstuctor", routes.get_dicConstuctor);
-router.get('/dicConstuctor/:id', routes.get_dicConstuctor_id);
+router.get("/dic/:tableID/:id", routes.get_dic);
 
-//router.post("/api", routes.post);
-
-//router.delete("/api", routes.delete);
+//router.get("/dicConstuctor", routes.get_dicConstuctor);
+//router.get('/dicConstuctor/:id', routes.get_dicConstuctor_id);
 
 //router.get("/migrateDB", routes.migrateDB); 
 
